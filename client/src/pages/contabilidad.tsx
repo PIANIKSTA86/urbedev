@@ -126,7 +126,7 @@ export default function Contabilidad() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {comprobantes?.slice(0, 3).map((comprobante: any, index: number) => (
+                  {(comprobantes as any)?.slice(0, 3).map((comprobante: any, index: number) => (
                     <div key={index} className="p-3 border border-border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-foreground font-medium">
@@ -213,10 +213,10 @@ export default function Contabilidad() {
                     <span className="text-foreground font-medium">Período Actual</span>
                   </div>
                   <p className="text-2xl font-bold text-foreground">
-                    {periodoActual ? `${periodoActual.ano}-${periodoActual.mes.toString().padStart(2, '0')}` : "2024-12"}
+                    {periodoActual ? `${(periodoActual as any).ano}-${(periodoActual as any).mes.toString().padStart(2, '0')}` : "2024-12"}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    {periodoActual?.nombre || "Diciembre 2024"}
+                    {(periodoActual as any)?.nombre || "Diciembre 2024"}
                   </p>
                 </div>
                 
@@ -226,7 +226,7 @@ export default function Contabilidad() {
                     <span className="text-foreground font-medium">Estado</span>
                   </div>
                   <p className="text-lg font-bold text-secondary">
-                    {periodoActual?.estado?.toUpperCase() || "ABIERTO"}
+                    {(periodoActual as any)?.estado?.toUpperCase() || "ABIERTO"}
                   </p>
                   <p className="text-muted-foreground text-sm">Acepta movimientos</p>
                 </div>
@@ -237,7 +237,7 @@ export default function Contabilidad() {
                     <span className="text-foreground font-medium">Comprobantes</span>
                   </div>
                   <p className="text-2xl font-bold text-foreground">
-                    {comprobantes?.length || 0}
+                    {(comprobantes as any)?.length || 0}
                   </p>
                   <p className="text-muted-foreground text-sm">Este período</p>
                 </div>

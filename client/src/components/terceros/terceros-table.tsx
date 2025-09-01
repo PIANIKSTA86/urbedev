@@ -50,8 +50,8 @@ export function TercerosTable({ searchTerm, tipoFiltro }: TercerosTableProps) {
     );
   }
 
-  const terceros = data?.terceros || [];
-  const total = data?.total || 0;
+  const terceros = (data as any)?.terceros || [];
+  const total = (data as any)?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
   const getTipoColor = (tipo: string) => {

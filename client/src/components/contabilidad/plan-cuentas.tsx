@@ -33,7 +33,7 @@ export function PlanCuentas() {
   };
 
   // Agrupar cuentas por clase
-  const cuentasPorClase = (cuentas || []).reduce((acc: Record<string, PlanCuenta[]>, cuenta: PlanCuenta) => {
+  const cuentasPorClase = ((cuentas as PlanCuenta[]) || []).reduce((acc: Record<string, PlanCuenta[]>, cuenta: PlanCuenta) => {
     if (!acc[cuenta.clase]) {
       acc[cuenta.clase] = [];
     }
@@ -43,11 +43,11 @@ export function PlanCuentas() {
 
   // Obtener clases principales (nivel 1)
   const clasesPrincipales = Object.keys(cuentasPorClase).map(clase => {
-    const primeracuenta = cuentasPorClase[clase].find(c => c.nivel === 1);
+    const primeracuenta = cuentasPorClase[clase].find((c: PlanCuenta) => c.nivel === 1);
     return {
       codigo: clase,
       nombre: primeracuenta?.nombreClase || `Clase ${clase}`,
-      subcuentas: cuentasPorClase[clase].filter(c => c.nivel === 1).length
+      subcuentas: cuentasPorClase[clase].filter((c: PlanCuenta) => c.nivel === 1).length
     };
   }).sort((a, b) => a.codigo.localeCompare(b.codigo));
 
@@ -138,9 +138,9 @@ export function PlanCuentas() {
                 {expandedClases.has(clase.codigo) && (
                   <div className="ml-6 mt-2 space-y-2">
                     {cuentasPorClase[clase.codigo]
-                      .filter(cuenta => cuenta.nivel === 1)
+                      .filter((cuenta: PlanCuenta) => cuenta.nivel === 1)
                       .slice(0, 5) // Mostrar solo las primeras 5
-                      .map((cuenta) => (
+                      .map((cuenta: PlanCuenta) => (
                         <div 
                           key={cuenta.id}
                           className="flex items-center justify-between p-2 border border-border rounded bg-muted/30"
@@ -160,10 +160,10 @@ export function PlanCuentas() {
                         </div>
                       ))}
                     
-                    {cuentasPorClase[clase.codigo].filter(c => c.nivel === 1).length > 5 && (
+                    {cuentasPorClase[clase.codigo].filter((c: PlanCuenta) => c.nivel === 1).length > 5 && (
                       <div className="text-center">
                         <button className="text-xs text-primary hover:text-primary/80">
-                          Ver {cuentasPorClase[clase.codigo].filter(c => c.nivel === 1).length - 5} más...
+                          Ver {cuentasPorClase[clase.codigo].filter((c: PlanCuenta) => c.nivel === 1).length - 5} más...
                         </button>
                       </div>
                     )}

@@ -88,16 +88,16 @@ export function Sidebar() {
           <div className="flex items-center mb-3">
             <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center mr-3 flex-shrink-0">
               <span className="text-sidebar-primary-foreground text-sm font-semibold">
-                {user?.nombre?.[0]}{user?.apellido?.[0]}
+                {(user as any)?.nombre?.[0]}{(user as any)?.apellido?.[0]}
               </span>
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.nombre} {user?.apellido}
+                  {(user as any)?.nombre} {(user as any)?.apellido}
                 </div>
                 <div className="text-xs text-sidebar-foreground/70 truncate">
-                  {user?.rol}
+                  {(user as any)?.rol}
                 </div>
               </div>
             )}

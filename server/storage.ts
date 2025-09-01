@@ -111,9 +111,6 @@ export class DatabaseStorage implements IStorage {
   async getTerceros(filtros: { tipo?: string; busqueda?: string; limite?: number; offset?: number } = {}): Promise<{ terceros: Tercero[]; total: number }> {
     const { tipo, busqueda, limite = 10, offset = 0 } = filtros;
     
-    let query = db.select().from(terceros);
-    let countQuery = db.select({ count: count() }).from(terceros);
-    
     const condiciones = [eq(terceros.activo, true)];
     
     if (tipo) {
@@ -126,14 +123,16 @@ export class DatabaseStorage implements IStorage {
       );
     }
     
-    if (condiciones.length > 0) {
-      query = query.where(and(...condiciones));
-      countQuery = countQuery.where(and(...condiciones));
-    }
+    const whereCondition = condiciones.length > 0 ? and(...condiciones) : undefined;
     
     const [tercerosResult, totalResult] = await Promise.all([
-      query.orderBy(desc(terceros.fechaCreacion)).limit(limite).offset(offset),
-      countQuery
+      db.select().from(terceros)
+        .where(whereCondition)
+        .orderBy(desc(terceros.fechaCreacion))
+        .limit(limite)
+        .offset(offset),
+      db.select({ count: count() }).from(terceros)
+        .where(whereCondition)
     ]);
     
     return {
@@ -178,23 +177,22 @@ export class DatabaseStorage implements IStorage {
   async getUnidades(filtros: { propietarioId?: string; limite?: number; offset?: number } = {}): Promise<{ unidades: UnidadHabitacional[]; total: number }> {
     const { propietarioId, limite = 10, offset = 0 } = filtros;
     
-    let query = db.select().from(unidadesHabitacionales);
-    let countQuery = db.select({ count: count() }).from(unidadesHabitacionales);
-    
     const condiciones = [eq(unidadesHabitacionales.activo, true)];
     
     if (propietarioId) {
       condiciones.push(eq(unidadesHabitacionales.propietarioId, propietarioId));
     }
     
-    if (condiciones.length > 0) {
-      query = query.where(and(...condiciones));
-      countQuery = countQuery.where(and(...condiciones));
-    }
+    const whereCondition = condiciones.length > 0 ? and(...condiciones) : undefined;
     
     const [unidadesResult, totalResult] = await Promise.all([
-      query.orderBy(unidadesHabitacionales.codigoUnidad).limit(limite).offset(offset),
-      countQuery
+      db.select().from(unidadesHabitacionales)
+        .where(whereCondition)
+        .orderBy(unidadesHabitacionales.codigoUnidad)
+        .limit(limite)
+        .offset(offset),
+      db.select({ count: count() }).from(unidadesHabitacionales)
+        .where(whereCondition)
     ]);
     
     return {
@@ -270,13 +268,11 @@ export class DatabaseStorage implements IStorage {
 
   // Operaciones de comprobantes
   async getComprobantes(periodoId?: string): Promise<ComprobanteContable[]> {
-    let query = db.select().from(comprobantesContables);
+    const whereCondition = periodoId ? eq(comprobantesContables.periodoId, periodoId) : undefined;
     
-    if (periodoId) {
-      query = query.where(eq(comprobantesContables.periodoId, periodoId));
-    }
-    
-    return await query.orderBy(desc(comprobantesContables.fechaCreacion));
+    return await db.select().from(comprobantesContables)
+      .where(whereCondition)
+      .orderBy(desc(comprobantesContables.fechaCreacion));
   }
 
   async crearComprobante(datosComprobante: any): Promise<ComprobanteContable> {

@@ -60,7 +60,7 @@ export function useAuth() {
   // Actualizar el estado local cuando obtenemos datos del servidor
   useEffect(() => {
     if (user && authState.token) {
-      setAuthStateLocal({ token: authState.token, user });
+      setAuthStateLocal({ token: authState.token, user: user as User });
     }
   }, [user, authState.token]);
 

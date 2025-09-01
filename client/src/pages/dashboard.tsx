@@ -38,7 +38,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col">
         <TopNavigation title="Dashboard Principal" />
         <main className="flex-1 p-6 overflow-auto">
-          <StatsCards data={estadisticas} />
+          <StatsCards data={estadisticas as any} />
           
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -95,7 +95,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {estadisticas?.transaccionesRecientes?.map((transaccion: any, index: number) => (
+                  {(estadisticas as any)?.transaccionesRecientes?.map((transaccion: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                       <div className="flex items-center">
                         <div className={`p-2 rounded-full mr-3 ${
