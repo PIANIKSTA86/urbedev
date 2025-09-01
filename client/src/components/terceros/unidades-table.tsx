@@ -8,30 +8,30 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface TercerosTableProps {
+interface UnidadesTableProps {
   searchTerm: string;
-  tipoFiltro: string;
-  onEdit: (tercero: any) => void;
+  propietarioId?: string;
+  onEdit: (unidad: any) => void;
 }
 
-export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableProps) {
+export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTableProps) {
   const [page, setPage] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [terceroToDelete, setTerceroToDelete] = useState<any>(null);
+  const [unidadToDelete, setUnidadToDelete] = useState<any>(null);
   const limit = 10;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/terceros", searchTerm, tipoFiltro === "todos" ? "" : tipoFiltro, page],
+    queryKey: ["/api/unidades", searchTerm, propietarioId, page],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('busqueda', searchTerm);
-      if (tipoFiltro && tipoFiltro !== "todos") params.append('tipo', tipoFiltro);
+      if (propietarioId) params.append('propietarioId', propietarioId);
       params.append('limite', limit.toString());
       params.append('offset', (page * limit).toString());
       
-      const response = await fetch(`/api/terceros?${params.toString()}`, {
+      const response = await fetch(`/api/unidades?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }
@@ -44,6 +44,40 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
       return response.json();
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (unidadId: string) => {
+      const response = await apiRequest('DELETE', `/api/unidades/${unidadId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/unidades'] });
+      toast({
+        title: "Unidad eliminada",
+        description: "La unidad ha sido eliminada exitosamente",
+      });
+      setDeleteDialogOpen(false);
+      setUnidadToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Ha ocurrido un error al eliminar la unidad",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = (unidad: any) => {
+    setUnidadToDelete(unidad);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (unidadToDelete) {
+      deleteMutation.mutate(unidadToDelete.id);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -66,83 +100,64 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
     return (
       <Card className="overflow-hidden">
         <div className="p-6 text-center text-destructive">
-          <p>Error al cargar los terceros: {error.message}</p>
+          <p>Error al cargar las unidades: {error.message}</p>
         </div>
       </Card>
     );
   }
 
-  const terceros = (data as any)?.terceros || [];
+  const unidades = (data as any)?.unidades || [];
   const total = (data as any)?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
-  const deleteMutation = useMutation({
-    mutationFn: async (terceroId: string) => {
-      const response = await apiRequest('DELETE', `/api/terceros/${terceroId}`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/terceros'] });
-      toast({
-        title: "Tercero eliminado",
-        description: "El tercero ha sido eliminado exitosamente",
-      });
-      setDeleteDialogOpen(false);
-      setTerceroToDelete(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Ha ocurrido un error al eliminar el tercero",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDelete = (tercero: any) => {
-    setTerceroToDelete(tercero);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (terceroToDelete) {
-      deleteMutation.mutate(terceroToDelete.id);
-    }
-  };
-
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
-      case 'propietario': return 'bg-green-100 text-green-800';
-      case 'inquilino': return 'bg-blue-100 text-blue-800';
-      case 'proveedor': return 'bg-orange-100 text-orange-800';
+      case 'apartamento': return 'bg-blue-100 text-blue-800';
+      case 'local_comercial': return 'bg-purple-100 text-purple-800';
+      case 'oficina': return 'bg-green-100 text-green-800';
+      case 'deposito': return 'bg-gray-100 text-gray-800';
+      case 'parqueadero': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getInitials = (primerNombre: string, primerApellido: string) => {
-    return `${primerNombre?.[0] || ''}${primerApellido?.[0] || ''}`.toUpperCase();
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'ocupado': return 'bg-green-100 text-green-800';
+      case 'desocupado': return 'bg-red-100 text-red-800';
+      case 'en_mantenimiento': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatCurrency = (amount: string | number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+    }).format(Number(amount));
   };
 
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full" data-testid="table-terceros">
+        <table className="w-full" data-testid="table-unidades">
           <thead className="bg-muted/50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Nombre
+                Unidad
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Documento
+                Propietario
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Tipo
+                Área
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Email
+                Cuota Admin.
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Teléfono
+                Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Acciones
@@ -150,45 +165,51 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
-            {terceros.length === 0 ? (
+            {unidades.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                  No se encontraron terceros
+                  No se encontraron unidades
                 </td>
               </tr>
             ) : (
-              terceros.map((tercero: any) => (
-                <tr key={tercero.id} data-testid={`row-tercero-${tercero.id}`}>
+              unidades.map((unidad: any) => (
+                <tr key={unidad.id} data-testid={`row-unidad-${unidad.id}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mr-3">
-                        <span className="text-primary-foreground font-semibold text-sm">
-                          {getInitials(tercero.primerNombre, tercero.primerApellido)}
-                        </span>
+                    <div>
+                      <div className="text-foreground font-medium">
+                        {unidad.codigoUnidad}
                       </div>
-                      <div>
-                        <div className="text-foreground font-medium">
-                          {tercero.primerNombre} {tercero.primerApellido}
-                        </div>
-                        {tercero.razonSocial && (
-                          <div className="text-muted-foreground text-sm">{tercero.razonSocial}</div>
-                        )}
+                      <div className="text-sm">
+                        <Badge className={getTipoColor(unidad.tipoUnidad)}>
+                          {unidad.tipoUnidad}
+                        </Badge>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                    {tercero.numeroIdentificacion}
+                    {unidad.propietario ? (
+                      <div>
+                        <div className="font-medium">
+                          {unidad.propietario.primerNombre} {unidad.propietario.primerApellido}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {unidad.propietario.numeroIdentificacion}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Sin propietario</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                    {unidad.area} m²
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                    {formatCurrency(unidad.cuotaAdministracion)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getTipoColor(tercero.tipoTercero)}>
-                      {tercero.tipoTercero}
+                    <Badge className={getEstadoColor(unidad.estadoOcupacion)}>
+                      {unidad.estadoOcupacion}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                    {tercero.email || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                    {tercero.movil || tercero.telefono || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
@@ -196,7 +217,7 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                         variant="ghost" 
                         size="sm"
                         className="text-primary hover:text-primary/80"
-                        data-testid={`button-view-${tercero.id}`}
+                        data-testid={`button-view-${unidad.id}`}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -204,8 +225,8 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                         variant="ghost" 
                         size="sm"
                         className="text-secondary hover:text-secondary/80"
-                        onClick={() => onEdit(tercero)}
-                        data-testid={`button-edit-${tercero.id}`}
+                        onClick={() => onEdit(unidad)}
+                        data-testid={`button-edit-${unidad.id}`}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -213,8 +234,8 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                         variant="ghost" 
                         size="sm"
                         className="text-destructive hover:text-destructive/80"
-                        onClick={() => handleDelete(tercero)}
-                        data-testid={`button-delete-${tercero.id}`}
+                        onClick={() => handleDelete(unidad)}
+                        data-testid={`button-delete-${unidad.id}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -231,7 +252,7 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
       <div className="bg-muted/30 px-6 py-3 border-t border-border">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Mostrando {page * limit + 1} a {Math.min((page + 1) * limit, total)} de {total} terceros
+            Mostrando {page * limit + 1} a {Math.min((page + 1) * limit, total)} de {total} unidades
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -278,11 +299,11 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
 
       {/* Dialog de confirmación de eliminación */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent data-testid="dialog-delete-tercero">
+        <AlertDialogContent data-testid="dialog-delete-unidad">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar tercero?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar unidad?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente el tercero "{terceroToDelete?.primerNombre} {terceroToDelete?.primerApellido}" 
+              Esta acción eliminará permanentemente la unidad "{unidadToDelete?.codigoUnidad}" 
               del sistema. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>

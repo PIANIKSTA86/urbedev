@@ -44,6 +44,7 @@ export interface IStorage {
   getUnidad(id: string): Promise<UnidadHabitacional | undefined>;
   crearUnidad(unidad: InsertUnidad): Promise<UnidadHabitacional>;
   actualizarUnidad(id: string, datos: Partial<InsertUnidad>): Promise<UnidadHabitacional>;
+  eliminarUnidad(id: string): Promise<void>;
   
   // Operaciones del plan de cuentas
   getPlanCuentas(): Promise<PlanCuenta[]>;
@@ -174,8 +175,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Operaciones de unidades habitacionales
-  async getUnidades(filtros: { propietarioId?: string; limite?: number; offset?: number } = {}): Promise<{ unidades: UnidadHabitacional[]; total: number }> {
-    const { propietarioId, limite = 10, offset = 0 } = filtros;
+  async getUnidades(filtros: { propietarioId?: string; busqueda?: string; limite?: number; offset?: number } = {}): Promise<{ unidades: UnidadHabitacional[]; total: number }> {
+    const { propietarioId, busqueda, limite = 10, offset = 0 } = filtros;
     
     const condiciones = [eq(unidadesHabitacionales.activo, true)];
     
@@ -183,14 +184,42 @@ export class DatabaseStorage implements IStorage {
       condiciones.push(eq(unidadesHabitacionales.propietarioId, propietarioId));
     }
     
+    if (busqueda) {
+      condiciones.push(like(unidadesHabitacionales.codigoUnidad, `%${busqueda}%`));
+    }
+    
     const whereCondition = condiciones.length > 0 ? and(...condiciones) : undefined;
     
     const [unidadesResult, totalResult] = await Promise.all([
-      db.select().from(unidadesHabitacionales)
-        .where(whereCondition)
-        .orderBy(unidadesHabitacionales.codigoUnidad)
-        .limit(limite)
-        .offset(offset),
+      db.select({
+        id: unidadesHabitacionales.id,
+        tipoUnidad: unidadesHabitacionales.tipoUnidad,
+        codigoUnidad: unidadesHabitacionales.codigoUnidad,
+        propietarioId: unidadesHabitacionales.propietarioId,
+        inquilinoId: unidadesHabitacionales.inquilinoId,
+        area: unidadesHabitacionales.area,
+        coeficiente: unidadesHabitacionales.coeficiente,
+        cuotaAdministracion: unidadesHabitacionales.cuotaAdministracion,
+        tieneParqueadero: unidadesHabitacionales.tieneParqueadero,
+        cuotaParqueadero: unidadesHabitacionales.cuotaParqueadero,
+        generaIntereses: unidadesHabitacionales.generaIntereses,
+        estadoOcupacion: unidadesHabitacionales.estadoOcupacion,
+        activo: unidadesHabitacionales.activo,
+        fechaCreacion: unidadesHabitacionales.fechaCreacion,
+        fechaActualizacion: unidadesHabitacionales.fechaActualizacion,
+        propietario: {
+          id: terceros.id,
+          primerNombre: terceros.primerNombre,
+          primerApellido: terceros.primerApellido,
+          numeroIdentificacion: terceros.numeroIdentificacion
+        }
+      })
+      .from(unidadesHabitacionales)
+      .leftJoin(terceros, eq(unidadesHabitacionales.propietarioId, terceros.id))
+      .where(whereCondition)
+      .orderBy(unidadesHabitacionales.codigoUnidad)
+      .limit(limite)
+      .offset(offset),
       db.select({ count: count() }).from(unidadesHabitacionales)
         .where(whereCondition)
     ]);
@@ -224,6 +253,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(unidadesHabitacionales.id, id))
       .returning();
     return unidad;
+  }
+
+  async eliminarUnidad(id: string): Promise<void> {
+    await db
+      .update(unidadesHabitacionales)
+      .set({ 
+        activo: false,
+        fechaActualizacion: new Date(),
+      })
+      .where(eq(unidadesHabitacionales.id, id));
   }
 
   // Operaciones del plan de cuentas

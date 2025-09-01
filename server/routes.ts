@@ -203,10 +203,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Obtener lista de unidades
   app.get("/api/unidades", authenticateToken, async (req: any, res) => {
     try {
-      const { propietarioId, limite = 10, offset = 0 } = req.query;
+      const { propietarioId, busqueda, limite = 10, offset = 0 } = req.query;
       
       const resultado = await storage.getUnidades({
         propietarioId,
+        busqueda,
         limite: parseInt(limite),
         offset: parseInt(offset)
       });
@@ -215,6 +216,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error al obtener unidades:", error);
       res.status(500).json({ mensaje: "Error al obtener lista de unidades" });
+    }
+  });
+
+  // Obtener una unidad específica
+  app.get("/api/unidades/:id", authenticateToken, async (req, res) => {
+    try {
+      const unidad = await storage.getUnidad(req.params.id);
+      if (!unidad) {
+        return res.status(404).json({ mensaje: "Unidad no encontrada" });
+      }
+      res.json(unidad);
+    } catch (error) {
+      console.error("Error al obtener unidad:", error);
+      res.status(500).json({ mensaje: "Error al obtener información de la unidad" });
     }
   });
 
@@ -237,6 +252,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ mensaje: "Error al crear unidad" });
+    }
+  });
+
+  // Actualizar unidad
+  app.put("/api/unidades/:id", authenticateToken, async (req, res) => {
+    try {
+      const datosActualizacion = insertUnidadSchema.partial().parse(req.body);
+      const unidadActualizada = await storage.actualizarUnidad(req.params.id, datosActualizacion);
+      
+      res.json({
+        mensaje: "Unidad actualizada exitosamente",
+        unidad: unidadActualizada
+      });
+    } catch (error) {
+      console.error("Error al actualizar unidad:", error);
+      res.status(500).json({ mensaje: "Error al actualizar unidad" });
+    }
+  });
+
+  // Eliminar unidad (soft delete)
+  app.delete("/api/unidades/:id", authenticateToken, async (req, res) => {
+    try {
+      await storage.eliminarUnidad(req.params.id);
+      res.json({ mensaje: "Unidad eliminada exitosamente" });
+    } catch (error) {
+      console.error("Error al eliminar unidad:", error);
+      res.status(500).json({ mensaje: "Error al eliminar unidad" });
     }
   });
 
