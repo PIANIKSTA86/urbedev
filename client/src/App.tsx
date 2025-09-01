@@ -13,9 +13,14 @@ import Contabilidad from "@/pages/contabilidad";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Si está cargando, mostrar la página de landing
+  if (isLoading) {
+    return <Landing />;
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
         <>

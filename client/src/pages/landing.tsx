@@ -38,6 +38,7 @@ export default function Landing() {
     },
     onSuccess: (data) => {
       login(data.token, data.usuario);
+      setShowLoginModal(false);
       toast({
         title: "Bienvenido",
         description: "Has iniciado sesión exitosamente",
