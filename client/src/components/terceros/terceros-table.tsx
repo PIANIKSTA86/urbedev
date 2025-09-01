@@ -45,37 +45,6 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
     },
   });
 
-  if (isLoading) {
-    return (
-      <Card className="overflow-hidden">
-        <div className="p-6 text-center">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-muted rounded w-1/4"></div>
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-12 bg-muted rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="overflow-hidden">
-        <div className="p-6 text-center text-destructive">
-          <p>Error al cargar los terceros: {error.message}</p>
-        </div>
-      </Card>
-    );
-  }
-
-  const terceros = (data as any)?.terceros || [];
-  const total = (data as any)?.total || 0;
-  const totalPages = Math.ceil(total / limit);
-
   const deleteMutation = useMutation({
     mutationFn: async (terceroId: string) => {
       const response = await apiRequest('DELETE', `/api/terceros/${terceroId}`);
@@ -122,6 +91,37 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
   const getInitials = (primerNombre: string, primerApellido: string) => {
     return `${primerNombre?.[0] || ''}${primerApellido?.[0] || ''}`.toUpperCase();
   };
+
+  if (isLoading) {
+    return (
+      <Card className="overflow-hidden">
+        <div className="p-6 text-center">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-1/4"></div>
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-muted rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="overflow-hidden">
+        <div className="p-6 text-center text-destructive">
+          <p>Error al cargar los terceros: {error.message}</p>
+        </div>
+      </Card>
+    );
+  }
+
+  const terceros = (data as any)?.terceros || [];
+  const total = (data as any)?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <Card className="overflow-hidden">
@@ -177,7 +177,10 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                    {tercero.numeroIdentificacion}
+                    <div>
+                      <div className="font-medium">{tercero.numeroIdentificacion}</div>
+                      <div className="text-sm text-muted-foreground">{tercero.tipoIdentificacion}</div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge className={getTipoColor(tercero.tipoTercero)}>
@@ -188,7 +191,7 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                     {tercero.email || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                    {tercero.movil || tercero.telefono || '-'}
+                    {tercero.telefono || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
