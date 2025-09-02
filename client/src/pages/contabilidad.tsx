@@ -1,4 +1,5 @@
-import { Sidebar } from "@/components/layout/sidebar";
+import React from "react";
+import { SidebarNew } from "@/components/layout/sidebar-new";
 import { TopNavigation } from "@/components/layout/top-navigation";
 import { PlanCuentas } from "@/components/contabilidad/plan-cuentas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,12 +33,190 @@ export default function Contabilidad() {
     utilidad: 13100000
   };
 
+  // Filtros para reportes
+  const [filtros, setFiltros] = React.useState({
+    desde: '',
+    hasta: '',
+    cuentaCodigo: '',
+    terceroId: ''
+  });
+
+  // Estado para reportes
+  const [balancePrueba, setBalancePrueba] = React.useState<any>(null);
+  const [balanceGeneral, setBalanceGeneral] = React.useState<any>(null);
+  const [estadoResultados, setEstadoResultados] = React.useState<any>(null);
+  const [libroDiario, setLibroDiario] = React.useState<any>(null);
+
+  // Función para cargar reportes
+  const cargarReportes = async () => {
+    const params = new URLSearchParams();
+    if (filtros.desde) params.append('desde', filtros.desde);
+    if (filtros.hasta) params.append('hasta', filtros.hasta);
+    if (filtros.cuentaCodigo) params.append('cuentaCodigo', filtros.cuentaCodigo);
+    if (filtros.terceroId) params.append('terceroId', filtros.terceroId);
+    const [bp, bg, er, ld] = await Promise.all([
+      fetch(`/api/contabilidad/reportes/balance-prueba?${params}`).then(r => r.json()),
+      fetch(`/api/contabilidad/reportes/balance-general?${params}`).then(r => r.json()),
+      fetch(`/api/contabilidad/reportes/estado-resultados?${params}`).then(r => r.json()),
+      fetch(`/api/contabilidad/reportes/libro-diario?${params}`).then(r => r.json())
+    ]);
+    setBalancePrueba(bp);
+    setBalanceGeneral(bg);
+    setEstadoResultados(er);
+    setLibroDiario(ld);
+  };
+
+  React.useEffect(() => {
+    cargarReportes();
+    // eslint-disable-next-line
+  }, [filtros]);
+
+  // Función para exportar reportes
+  const exportarReporte = (tipo: string, formato: string) => {
+    const params = new URLSearchParams();
+    if (filtros.desde) params.append('desde', filtros.desde);
+    if (filtros.hasta) params.append('hasta', filtros.hasta);
+    if (filtros.cuentaCodigo) params.append('cuentaCodigo', filtros.cuentaCodigo);
+    if (filtros.terceroId) params.append('terceroId', filtros.terceroId);
+    params.append('export', formato);
+    window.open(`/api/contabilidad/reportes/${tipo}?${params}`, '_blank');
+  };
+
   return (
     <div className="flex h-screen">
-      <Sidebar />
+  <SidebarNew />
       <div className="flex-1 flex flex-col">
         <TopNavigation title="Módulo de Contabilidad" />
         <main className="flex-1 p-6 overflow-auto">
+          {/* Filtros avanzados para reportes */}
+          <div className="mb-6 flex gap-4 flex-wrap">
+            <input type="date" value={filtros.desde} onChange={e => setFiltros(f => ({ ...f, desde: e.target.value }))} className="border rounded px-2 py-1" placeholder="Desde" />
+            <input type="date" value={filtros.hasta} onChange={e => setFiltros(f => ({ ...f, hasta: e.target.value }))} className="border rounded px-2 py-1" placeholder="Hasta" />
+            <input type="text" value={filtros.cuentaCodigo} onChange={e => setFiltros(f => ({ ...f, cuentaCodigo: e.target.value }))} className="border rounded px-2 py-1" placeholder="Código de cuenta" />
+            <input type="text" value={filtros.terceroId} onChange={e => setFiltros(f => ({ ...f, terceroId: e.target.value }))} className="border rounded px-2 py-1" placeholder="ID Tercero" />
+            <Button onClick={cargarReportes}>Filtrar</Button>
+          </div>
+
+          {/* Sección de reportes contables */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-2">Reportes Contables</h2>
+            <div className="flex gap-2 mb-4">
+              <Button onClick={() => exportarReporte('balance-prueba', 'excel')}>Exportar Balance de Prueba (Excel)</Button>
+              <Button onClick={() => exportarReporte('balance-prueba', 'pdf')}>Exportar Balance de Prueba (PDF)</Button>
+              <Button onClick={() => exportarReporte('balance-general', 'excel')}>Exportar Balance General (Excel)</Button>
+              <Button onClick={() => exportarReporte('balance-general', 'pdf')}>Exportar Balance General (PDF)</Button>
+              <Button onClick={() => exportarReporte('estado-resultados', 'excel')}>Exportar Estado de Resultados (Excel)</Button>
+              <Button onClick={() => exportarReporte('estado-resultados', 'pdf')}>Exportar Estado de Resultados (PDF)</Button>
+              <Button onClick={() => exportarReporte('libro-diario', 'excel')}>Exportar Libro Diario (Excel)</Button>
+              <Button onClick={() => exportarReporte('libro-diario', 'pdf')}>Exportar Libro Diario (PDF)</Button>
+            </div>
+            {/* Balance de Prueba */}
+            {balancePrueba && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">Balance de Prueba</h3>
+                <table className="min-w-full border">
+                  <thead>
+                    <tr>
+                      <th className="border px-2">Código</th>
+                      <th className="border px-2">Nombre</th>
+                      <th className="border px-2">Débito</th>
+                      <th className="border px-2">Crédito</th>
+                      <th className="border px-2">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(balancePrueba).map(([codigo, data]: any) => (
+                      <tr key={codigo}>
+                        <td className="border px-2">{codigo}</td>
+                        <td className="border px-2">{data.nombre}</td>
+                        <td className="border px-2">{data.debito}</td>
+                        <td className="border px-2">{data.credito}</td>
+                        <td className="border px-2">{data.saldo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {/* Balance General */}
+            {balanceGeneral && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">Balance General</h3>
+                <table className="min-w-full border">
+                  <thead>
+                    <tr>
+                      <th className="border px-2">Clase</th>
+                      <th className="border px-2">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(balanceGeneral.resumen).map(([clase, total]: any) => (
+                      <tr key={clase}>
+                        <td className="border px-2">{clase}</td>
+                        <td className="border px-2">{total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {/* Estado de Resultados */}
+            {estadoResultados && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">Estado de Resultados</h3>
+                <table className="min-w-full border">
+                  <thead>
+                    <tr>
+                      <th className="border px-2">Ingresos</th>
+                      <th className="border px-2">Gastos</th>
+                      <th className="border px-2">Utilidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border px-2">{estadoResultados.ingresos}</td>
+                      <td className="border px-2">{estadoResultados.gastos}</td>
+                      <td className="border px-2">{estadoResultados.utilidad}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {/* Libro Diario */}
+            {libroDiario && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">Libro Diario</h3>
+                <table className="min-w-full border">
+                  <thead>
+                    <tr>
+                      <th className="border px-2">Fecha</th>
+                      <th className="border px-2">Descripción</th>
+                      <th className="border px-2">Documento</th>
+                      <th className="border px-2">Cuenta</th>
+                      <th className="border px-2">Débito</th>
+                      <th className="border px-2">Crédito</th>
+                      <th className="border px-2">Tercero</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {libroDiario.map((tx: any) => (
+                      tx.cuentas.map((c: any, idx: number) => (
+                        <tr key={tx.id + '-' + idx}>
+                          <td className="border px-2">{tx.fecha}</td>
+                          <td className="border px-2">{tx.descripcion}</td>
+                          <td className="border px-2">{tx.documento}</td>
+                          <td className="border px-2">{c.codigo}</td>
+                          <td className="border px-2">{c.debito}</td>
+                          <td className="border px-2">{c.credito}</td>
+                          <td className="border px-2">{tx.terceroId || ''}</td>
+                        </tr>
+                      ))
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
           <div className="mb-6">
             <h1 className="text-2xl font-semibold text-foreground mb-2">Módulo de Contabilidad</h1>
             <p className="text-muted-foreground">Gestión completa del sistema contable y financiero</p>

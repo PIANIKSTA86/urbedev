@@ -1,3 +1,5 @@
+import * as tercerosController from './tercerosController.js';
+import contabilidadRoutes from './contabilidadRoutes.js';
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -31,9 +33,17 @@ const loginSchema = z.object({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Registrar storage en app para acceso desde controladores
+  app.set('storage', storage);
   // =================
   // RUTAS DE AUTENTICACIÓN
   // =================
+
+  // =================
+  // RUTAS DE CONTABILIDAD
+  // =================
+  // Prefijo /api/contabilidad para el módulo contable
+  app.use('/api/contabilidad', contabilidadRoutes);
   
   // Endpoint para iniciar sesión
   app.post("/api/auth/login", async (req, res) => {
@@ -114,87 +124,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RUTAS DE TERCEROS
   // =================
   
-  // Obtener lista de terceros con filtros
-  app.get("/api/terceros", authenticateToken, async (req: any, res) => {
-    try {
-      const { tipo, busqueda, limite = 10, offset = 0 } = req.query;
-      
-      const resultado = await storage.getTerceros({
-        tipo,
-        busqueda,
-        limite: parseInt(limite),
-        offset: parseInt(offset)
-      });
-      
-      res.json(resultado);
-    } catch (error) {
-      console.error("Error al obtener terceros:", error);
-      res.status(500).json({ mensaje: "Error al obtener lista de terceros" });
-    }
-  });
+  // Importar el controlador de terceros
 
-  // Obtener un tercero específico
-  app.get("/api/terceros/:id", authenticateToken, async (req, res) => {
-    try {
-      const tercero = await storage.getTercero(req.params.id);
-      if (!tercero) {
-        return res.status(404).json({ mensaje: "Tercero no encontrado" });
-      }
-      res.json(tercero);
-    } catch (error) {
-      console.error("Error al obtener tercero:", error);
-      res.status(500).json({ mensaje: "Error al obtener información del tercero" });
-    }
-  });
+  // Obtener lista de terceros
+  app.get("/api/terceros", authenticateToken, tercerosController.getTerceros);
 
   // Crear nuevo tercero
-  app.post("/api/terceros", authenticateToken, async (req, res) => {
-    try {
-      const datosTercero = insertTerceroSchema.parse(req.body);
-      const nuevoTercero = await storage.crearTercero(datosTercero);
-      
-      res.status(201).json({
-        mensaje: "Tercero creado exitosamente",
-        tercero: nuevoTercero
-      });
-    } catch (error) {
-      console.error("Error al crear tercero:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          mensaje: "Datos de entrada inválidos",
-          errores: error.errors
-        });
-      }
-      res.status(500).json({ mensaje: "Error al crear tercero" });
-    }
-  });
+  app.post("/api/terceros", authenticateToken, tercerosController.createTercero);
 
   // Actualizar tercero
-  app.put("/api/terceros/:id", authenticateToken, async (req, res) => {
-    try {
-      const datosActualizacion = insertTerceroSchema.partial().parse(req.body);
-      const terceroActualizado = await storage.actualizarTercero(req.params.id, datosActualizacion);
-      
-      res.json({
-        mensaje: "Tercero actualizado exitosamente",
-        tercero: terceroActualizado
-      });
-    } catch (error) {
-      console.error("Error al actualizar tercero:", error);
-      res.status(500).json({ mensaje: "Error al actualizar tercero" });
-    }
-  });
+  app.put("/api/terceros/:id", authenticateToken, tercerosController.updateTercero);
 
-  // Eliminar tercero (soft delete)
-  app.delete("/api/terceros/:id", authenticateToken, async (req, res) => {
-    try {
-      await storage.eliminarTercero(req.params.id);
-      res.json({ mensaje: "Tercero eliminado exitosamente" });
-    } catch (error) {
-      console.error("Error al eliminar tercero:", error);
-      res.status(500).json({ mensaje: "Error al eliminar tercero" });
-    }
-  });
+  // Eliminar tercero
+  app.delete("/api/terceros/:id", authenticateToken, tercerosController.deleteTercero);
 
   // =================
   // RUTAS DE UNIDADES HABITACIONALES

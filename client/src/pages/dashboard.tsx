@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/layout/sidebar";
+import { SidebarNew } from "@/components/layout/sidebar-new";
 import { TopNavigation } from "@/components/layout/top-navigation";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -14,7 +14,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex h-screen">
-        <Sidebar />
+  <SidebarNew />
         <div className="flex-1 flex flex-col">
           <TopNavigation />
           <main className="flex-1 p-6">
@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
+  <SidebarNew />
       <div className="flex-1 flex flex-col">
         <TopNavigation title="Dashboard Principal" />
         <main className="flex-1 p-6 overflow-auto">

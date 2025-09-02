@@ -94,8 +94,8 @@ export function UnidadForm({ isOpen, onClose, unidad, mode }: UnidadFormProps) {
       form.reset({
         tipoUnidad: unidad.tipoUnidad || 'apartamento',
         codigoUnidad: unidad.codigoUnidad || '',
-        propietarioId: unidad.propietarioId || '',
-        inquilinoId: unidad.inquilinoId || '',
+        propietarioId: unidad.propietarioId ? String(unidad.propietarioId) : '',
+        inquilinoId: unidad.inquilinoId ? String(unidad.inquilinoId) : '',
         area: unidad.area?.toString() || '',
         coeficiente: unidad.coeficiente?.toString() || '',
         cuotaAdministracion: unidad.cuotaAdministracion?.toString() || '',
@@ -231,16 +231,15 @@ export function UnidadForm({ isOpen, onClose, unidad, mode }: UnidadFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Propietario</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-propietario">
                           <SelectValue placeholder="Seleccionar propietario" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin propietario</SelectItem>
                         {propietariosList.map((propietario: any) => (
-                          <SelectItem key={propietario.id} value={propietario.id}>
+                          <SelectItem key={propietario.id} value={String(propietario.id)}>
                             {propietario.primerNombre} {propietario.primerApellido} - {propietario.numeroIdentificacion}
                           </SelectItem>
                         ))}
@@ -257,14 +256,13 @@ export function UnidadForm({ isOpen, onClose, unidad, mode }: UnidadFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Inquilino</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-inquilino">
-                          <SelectValue placeholder="Seleccionar inquilino" />
+                          <SelectValue placeholder="Sin inquilino" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin inquilino</SelectItem>
                         {inquilinosList.map((inquilino: any) => (
                           <SelectItem key={inquilino.id} value={inquilino.id}>
                             {inquilino.primerNombre} {inquilino.primerApellido} - {inquilino.numeroIdentificacion}

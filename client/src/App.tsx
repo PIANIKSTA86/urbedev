@@ -9,6 +9,13 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Terceros from "@/pages/terceros";
 import Contabilidad from "@/pages/contabilidad";
+import Facturacion from "@/pages/facturacion";
+import Tesoreria from "@/pages/tesoreria";
+import Nomina from "@/pages/nomina";
+import GestionPH from "@/pages/gestion-ph";
+import Configuracion from "@/pages/configuracion";
+import Exogena from "@/pages/exogena";
+import Presupuestos from "@/pages/presupuestos";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,8 +32,15 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Dashboard} />
-          <Route path="/terceros" component={Terceros} />
-          <Route path="/contabilidad" component={Contabilidad} />
+  <Route path="/terceros" component={Terceros} />
+  <Route path="/contabilidad" component={Contabilidad} />
+  <Route path="/facturacion" component={Facturacion} />
+  <Route path="/tesoreria" component={Tesoreria} />
+  <Route path="/nomina" component={Nomina} />
+  <Route path="/presupuestos" component={Presupuestos} />
+  <Route path="/exogena" component={Exogena} />
+  <Route path="/gestion-ph" component={GestionPH} />
+  <Route path="/configuracion" component={Configuracion} />
         </>
       )}
       <Route component={NotFound} />

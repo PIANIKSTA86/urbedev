@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 
 interface TopNavigationProps {
   title?: string;

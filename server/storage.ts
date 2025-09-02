@@ -1,7 +1,7 @@
 import {
   usuarios,
   terceros,
-  unidadesHabitacionales,
+  unidades,
   planCuentas,
   periodosContables,
   comprobantesContables,
@@ -11,7 +11,7 @@ import {
   type InsertUsuario,
   type Tercero,
   type InsertTercero,
-  type UnidadHabitacional,
+  type Unidad,
   type InsertUnidad,
   type PlanCuenta,
   type InsertPlanCuenta,
@@ -39,11 +39,11 @@ export interface IStorage {
   actualizarTercero(id: string, datos: Partial<InsertTercero>): Promise<Tercero>;
   eliminarTercero(id: string): Promise<void>;
   
-  // Operaciones de unidades habitacionales
-  getUnidades(filtros?: { propietarioId?: string; limite?: number; offset?: number }): Promise<{ unidades: UnidadHabitacional[]; total: number }>;
-  getUnidad(id: string): Promise<UnidadHabitacional | undefined>;
-  crearUnidad(unidad: InsertUnidad): Promise<UnidadHabitacional>;
-  actualizarUnidad(id: string, datos: Partial<InsertUnidad>): Promise<UnidadHabitacional>;
+  // Operaciones de unidades
+  getUnidades(filtros?: { propietarioId?: string; limite?: number; offset?: number }): Promise<{ unidades: Unidad[]; total: number }>;
+  getUnidad(id: string): Promise<Unidad | undefined>;
+  crearUnidad(unidad: InsertUnidad): Promise<Unidad>;
+  actualizarUnidad(id: string, datos: Partial<InsertUnidad>): Promise<Unidad>;
   eliminarUnidad(id: string): Promise<void>;
   
   // Operaciones del plan de cuentas
@@ -78,14 +78,20 @@ export class DatabaseStorage implements IStorage {
   async crearUsuario(datosUsuario: InsertUsuario): Promise<Usuario> {
     // Encriptar la contraseña antes de guardar
     const passwordEncriptado = await bcrypt.hash(datosUsuario.password, 10);
-    
-    const [usuario] = await db
+    await db
       .insert(usuarios)
       .values({
-        ...datosUsuario,
+        email: datosUsuario.email,
         password: passwordEncriptado,
-      })
-      .returning();
+        nombre: datosUsuario.nombre,
+        apellido: datosUsuario.apellido,
+        telefono: datosUsuario.telefono,
+        rol_id: datosUsuario.rol_id,
+        activo: true
+      });
+    // Buscar el usuario recién creado por email
+    const usuario = await this.getUsuarioPorEmail(datosUsuario.email);
+    if (!usuario) throw new Error('No se pudo crear el usuario');
     return usuario;
   }
 
@@ -135,35 +141,76 @@ export class DatabaseStorage implements IStorage {
       db.select({ count: count() }).from(terceros)
         .where(whereCondition)
     ]);
-    
+
+    // Mapear los campos a camelCase según el esquema actual
+    const tercerosCamel = tercerosResult.map((t: any) => ({
+  id: t.id,
+  tipoTercero: t.tipoTercero,
+  tipoPersona: t.tipoPersona,
+  tipoContribuyente: t.tipoContribuyente,
+  tipoIdentificacion: t.tipoIdentificacion,
+  numeroIdentificacion: t.numeroIdentificacion,
+  primerNombre: t.primerNombre,
+  segundoNombre: t.segundoNombre,
+  primerApellido: t.primerApellido,
+  segundoApellido: t.segundoApellido,
+  razonSocial: t.razonSocial,
+  direccion: t.direccion,
+  pais: t.pais,
+  departamento: t.departamento,
+  municipio: t.municipio,
+  municipioCodigoDane: t.municipioCodigoDane,
+  telefono: t.telefono,
+  movil: t.movil,
+  email: t.email,
+  activo: t.activo,
+  fechaCreacion: t.fechaCreacion,
+  fechaActualizacion: t.fechaActualizacion,
+    }));
+
     return {
-      terceros: tercerosResult,
+      terceros: tercerosCamel,
       total: totalResult[0].count
     };
   }
 
   async getTercero(id: string): Promise<Tercero | undefined> {
     const [tercero] = await db.select().from(terceros).where(eq(terceros.id, id));
-    return tercero;
+    if (!tercero) return undefined;
+    return {
+      ...tercero,
+      municipioCodigoDane: tercero.municipioCodigoDane,
+    };
   }
 
   async crearTercero(tercero: InsertTercero): Promise<Tercero> {
-    const [nuevoTercero] = await db
+    // Insertar el tercero
+    await db
       .insert(terceros)
-      .values(tercero)
-      .returning();
+      .values({
+        ...tercero,
+        municipioCodigoDane: tercero.municipioCodigoDane || null,
+      });
+    // Buscar el tercero recién creado por número de identificación
+    const [nuevoTercero] = await db
+      .select()
+      .from(terceros)
+      .where(eq(terceros.numeroIdentificacion, tercero.numeroIdentificacion));
+    if (!nuevoTercero) throw new Error('No se pudo crear el tercero');
     return nuevoTercero;
   }
 
   async actualizarTercero(id: string, datos: Partial<InsertTercero>): Promise<Tercero> {
-    const [tercero] = await db
+    await db
       .update(terceros)
       .set({
         ...datos,
+        municipioCodigoDane: datos.municipioCodigoDane || null,
         fechaActualizacion: new Date(),
       })
-      .where(eq(terceros.id, id))
-      .returning();
+      .where(eq(terceros.id, id));
+    // Seleccionar el tercero actualizado
+    const [tercero] = await db.select().from(terceros).where(eq(terceros.id, id));
     return tercero;
   }
 
@@ -174,39 +221,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(terceros.id, id));
   }
 
-  // Operaciones de unidades habitacionales
-  async getUnidades(filtros: { propietarioId?: string; busqueda?: string; limite?: number; offset?: number } = {}): Promise<{ unidades: UnidadHabitacional[]; total: number }> {
+  // Operaciones de unidades
+  async getUnidades(filtros: { propietarioId?: string; busqueda?: string; limite?: number; offset?: number } = {}): Promise<{ unidades: Unidad[]; total: number }> {
     const { propietarioId, busqueda, limite = 10, offset = 0 } = filtros;
-    
-    const condiciones = [eq(unidadesHabitacionales.activo, true)];
-    
+    const condiciones = [eq(unidades.activo, true)];
     if (propietarioId) {
-      condiciones.push(eq(unidadesHabitacionales.propietarioId, propietarioId));
+      condiciones.push(eq(unidades.propietarioId, propietarioId));
     }
-    
     if (busqueda) {
-      condiciones.push(like(unidadesHabitacionales.codigoUnidad, `%${busqueda}%`));
+      condiciones.push(like(unidades.codigoUnidad, `%${busqueda}%`));
     }
-    
     const whereCondition = condiciones.length > 0 ? and(...condiciones) : undefined;
-    
     const [unidadesResult, totalResult] = await Promise.all([
       db.select({
-        id: unidadesHabitacionales.id,
-        tipoUnidad: unidadesHabitacionales.tipoUnidad,
-        codigoUnidad: unidadesHabitacionales.codigoUnidad,
-        propietarioId: unidadesHabitacionales.propietarioId,
-        inquilinoId: unidadesHabitacionales.inquilinoId,
-        area: unidadesHabitacionales.area,
-        coeficiente: unidadesHabitacionales.coeficiente,
-        cuotaAdministracion: unidadesHabitacionales.cuotaAdministracion,
-        tieneParqueadero: unidadesHabitacionales.tieneParqueadero,
-        cuotaParqueadero: unidadesHabitacionales.cuotaParqueadero,
-        generaIntereses: unidadesHabitacionales.generaIntereses,
-        estadoOcupacion: unidadesHabitacionales.estadoOcupacion,
-        activo: unidadesHabitacionales.activo,
-        fechaCreacion: unidadesHabitacionales.fechaCreacion,
-        fechaActualizacion: unidadesHabitacionales.fechaActualizacion,
+        id: unidades.id,
+        tipoUnidad: unidades.tipoUnidad,
+        codigoUnidad: unidades.codigoUnidad,
+        propietarioId: unidades.propietarioId,
+        inquilinoId: unidades.inquilinoId,
+        area: unidades.area,
+        coeficiente: unidades.coeficiente,
+        cuotaAdministracion: unidades.cuotaAdministracion,
+        tieneParqueadero: unidades.tieneParqueadero,
+        cuotaParqueadero: unidades.cuotaParqueadero,
+        generaIntereses: unidades.generaIntereses,
+        estadoOcupacion: unidades.estadoOcupacion,
+        activo: unidades.activo,
+        fechaCreacion: unidades.fechaCreacion,
+        fechaActualizacion: unidades.fechaActualizacion,
         propietario: {
           id: terceros.id,
           primerNombre: terceros.primerNombre,
@@ -214,55 +256,60 @@ export class DatabaseStorage implements IStorage {
           numeroIdentificacion: terceros.numeroIdentificacion
         }
       })
-      .from(unidadesHabitacionales)
-      .leftJoin(terceros, eq(unidadesHabitacionales.propietarioId, terceros.id))
+      .from(unidades)
+      .leftJoin(terceros, eq(unidades.propietarioId, terceros.id))
       .where(whereCondition)
-      .orderBy(unidadesHabitacionales.codigoUnidad)
+      .orderBy(unidades.codigoUnidad)
       .limit(limite)
       .offset(offset),
-      db.select({ count: count() }).from(unidadesHabitacionales)
+      db.select({ count: count() }).from(unidades)
         .where(whereCondition)
     ]);
-    
     return {
       unidades: unidadesResult,
       total: totalResult[0].count
     };
   }
 
-  async getUnidad(id: string): Promise<UnidadHabitacional | undefined> {
-    const [unidad] = await db.select().from(unidadesHabitacionales).where(eq(unidadesHabitacionales.id, id));
+  async getUnidad(id: string): Promise<Unidad | undefined> {
+    const [unidad] = await db.select().from(unidades).where(eq(unidades.id, id));
     return unidad;
   }
 
-  async crearUnidad(unidad: InsertUnidad): Promise<UnidadHabitacional> {
+  async crearUnidad(unidad: InsertUnidad): Promise<Unidad> {
+    await db
+      .insert(unidades)
+      .values(unidad);
+    // Buscar la unidad recién creada por código
     const [nuevaUnidad] = await db
-      .insert(unidadesHabitacionales)
-      .values(unidad)
-      .returning();
+      .select()
+      .from(unidades)
+      .where(eq(unidades.codigoUnidad, unidad.codigoUnidad));
+    if (!nuevaUnidad) throw new Error('No se pudo crear la unidad');
     return nuevaUnidad;
   }
 
-  async actualizarUnidad(id: string, datos: Partial<InsertUnidad>): Promise<UnidadHabitacional> {
-    const [unidad] = await db
-      .update(unidadesHabitacionales)
+  async actualizarUnidad(id: string, datos: Partial<InsertUnidad>): Promise<Unidad> {
+    await db
+      .update(unidades)
       .set({
         ...datos,
         fechaActualizacion: new Date(),
       })
-      .where(eq(unidadesHabitacionales.id, id))
-      .returning();
+      .where(eq(unidades.id, id));
+    // Seleccionar la unidad actualizada
+    const [unidad] = await db.select().from(unidades).where(eq(unidades.id, id));
     return unidad;
   }
 
   async eliminarUnidad(id: string): Promise<void> {
     await db
-      .update(unidadesHabitacionales)
+      .update(unidades)
       .set({ 
         activo: false,
         fechaActualizacion: new Date(),
       })
-      .where(eq(unidadesHabitacionales.id, id));
+      .where(eq(unidades.id, id));
   }
 
   // Operaciones del plan de cuentas
@@ -327,8 +374,8 @@ export class DatabaseStorage implements IStorage {
     // Contar total de unidades
     const [totalUnidades] = await db
       .select({ count: count() })
-      .from(unidadesHabitacionales)
-      .where(eq(unidadesHabitacionales.activo, true));
+      .from(unidades)
+      .where(eq(unidades.activo, true));
 
     // Contar total de terceros por tipo
     const tercerosActivos = await db

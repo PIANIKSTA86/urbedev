@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
+import { SidebarNew } from "@/components/layout/sidebar-new";
 import { TopNavigation } from "@/components/layout/top-navigation";
 import { TercerosTable } from "@/components/terceros/terceros-table";
 import { TerceroForm } from "@/components/terceros/tercero-form";
@@ -27,12 +27,12 @@ export default function Terceros() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
+  <SidebarNew />
       <div className="flex-1 flex flex-col">
         <TopNavigation title="Gestión de Terceros" />
         <main className="flex-1 p-6 overflow-auto">
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-foreground mb-2">Gestión de Terceros y Unidades</h1>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">Gestión de Terceros</h1>
             <p className="text-muted-foreground">Administra propietarios, inquilinos, proveedores y unidades habitacionales</p>
           </div>
           
@@ -44,7 +44,7 @@ export default function Terceros() {
               </TabsTrigger>
               <TabsTrigger value="unidades" className="flex items-center gap-2">
                 <Building className="w-4 h-4" />
-                Unidades Habitacionales
+                Unidades
               </TabsTrigger>
             </TabsList>
             
@@ -71,7 +71,9 @@ export default function Terceros() {
                           <SelectItem value="todos">Todos los tipos</SelectItem>
                           <SelectItem value="propietario">Propietario</SelectItem>
                           <SelectItem value="inquilino">Inquilino</SelectItem>
+                          <SelectItem value="empleado">Empleado</SelectItem>
                           <SelectItem value="proveedor">Proveedor</SelectItem>
+                          <SelectItem value="acreedor">Acreedor</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button 

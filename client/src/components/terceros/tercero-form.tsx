@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
+import { municipiosColombia } from "./municipios-colombia";
 
 // Schema de validación para terceros
 const terceroSchema = z.object({
@@ -58,9 +59,13 @@ interface TerceroFormProps {
 }
 
 export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps) {
+  // Lista oficial de departamentos de Colombia (DANE)
+  const departamentosColombia = [
+    "Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar", "Boyacá", "Caldas", "Caquetá", "Casanare", "Cauca", "Cesar", "Chocó", "Córdoba", "Cundinamarca", "Guainía", "Guaviare", "Huila", "La Guajira", "Magdalena", "Meta", "Nariño", "Norte de Santander", "Putumayo", "Quindío", "Risaralda", "San Andrés y Providencia", "Santander", "Sucre", "Tolima", "Valle del Cauca", "Vaupés", "Vichada"
+  ];
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
   const form = useForm<TerceroFormData>({
     resolver: zodResolver(terceroSchema),
     defaultValues: {
@@ -83,7 +88,10 @@ export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps
       email: '',
     },
   });
+  // Estado para el país seleccionado
+  const paisSeleccionado = form.watch('pais');
 
+  const departamentoSeleccionado = form.watch('departamento');
   const tipoPersona = form.watch('tipoPersona');
 
   // Llenar el formulario cuando se edita un tercero
@@ -115,8 +123,12 @@ export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps
     mutationFn: async (data: TerceroFormData) => {
       const url = mode === 'create' ? '/api/terceros' : `/api/terceros/${tercero.id}`;
       const method = mode === 'create' ? 'POST' : 'PUT';
-      
-      const response = await apiRequest(method, url, data);
+      // Enviar municipioCodigoDane (el valor seleccionado en municipio)
+      const payload = {
+        ...data,
+        municipioCodigoDane: data.municipio,
+      };
+      const response = await apiRequest(method, url, payload);
       return response.json();
     },
     onSuccess: () => {
@@ -387,11 +399,50 @@ export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps
                   <FormItem>
                     <FormLabel>País *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="País"
-                        data-testid="input-pais"
-                        {...field}
-                      />
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger data-testid="select-pais">
+                          <SelectValue placeholder="Seleccionar país" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* América */}
+                          <SelectItem value="Colombia">Colombia</SelectItem>
+                          <SelectItem value="Argentina">Argentina</SelectItem>
+                          <SelectItem value="Brasil">Brasil</SelectItem>
+                          <SelectItem value="Chile">Chile</SelectItem>
+                          <SelectItem value="México">México</SelectItem>
+                          <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+                          <SelectItem value="Canadá">Canadá</SelectItem>
+                          <SelectItem value="Perú">Perú</SelectItem>
+                          <SelectItem value="Ecuador">Ecuador</SelectItem>
+                          <SelectItem value="Uruguay">Uruguay</SelectItem>
+                          <SelectItem value="Venezuela">Venezuela</SelectItem>
+                          {/* Europa */}
+                          <SelectItem value="España">España</SelectItem>
+                          <SelectItem value="Francia">Francia</SelectItem>
+                          <SelectItem value="Alemania">Alemania</SelectItem>
+                          <SelectItem value="Italia">Italia</SelectItem>
+                          <SelectItem value="Reino Unido">Reino Unido</SelectItem>
+                          <SelectItem value="Portugal">Portugal</SelectItem>
+                          <SelectItem value="Países Bajos">Países Bajos</SelectItem>
+                          <SelectItem value="Suiza">Suiza</SelectItem>
+                          <SelectItem value="Suecia">Suecia</SelectItem>
+                          <SelectItem value="Noruega">Noruega</SelectItem>
+                          {/* Asia */}
+                          <SelectItem value="China">China</SelectItem>
+                          <SelectItem value="Japón">Japón</SelectItem>
+                          <SelectItem value="India">India</SelectItem>
+                          <SelectItem value="Corea del Sur">Corea del Sur</SelectItem>
+                          <SelectItem value="Singapur">Singapur</SelectItem>
+                          <SelectItem value="Turquía">Turquía</SelectItem>
+                          <SelectItem value="Emiratos Árabes Unidos">Emiratos Árabes Unidos</SelectItem>
+                          <SelectItem value="Israel">Israel</SelectItem>
+                          {/* Otro */}
+                          <SelectItem value="Otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -405,11 +456,20 @@ export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps
                   <FormItem>
                     <FormLabel>Departamento *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Departamento"
-                        data-testid="input-departamento"
-                        {...field}
-                      />
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={paisSeleccionado !== "Colombia"}
+                      >
+                        <SelectTrigger data-testid="select-departamento">
+                          <SelectValue placeholder="Seleccionar departamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departamentosColombia.map(dep => (
+                            <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -419,19 +479,41 @@ export function TerceroForm({ isOpen, onClose, tercero, mode }: TerceroFormProps
               <FormField
                 control={form.control}
                 name="municipio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Municipio *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Municipio"
-                        data-testid="input-municipio"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Find selected municipio object
+                  const municipioObj = (municipiosColombia[departamentoSeleccionado] || []).find(mun => mun.codigo === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Municipio *</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={paisSeleccionado !== "Colombia" || !departamentoSeleccionado}
+                        >
+                          <SelectTrigger data-testid="select-municipio">
+                            <SelectValue placeholder="Seleccionar municipio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(municipiosColombia[departamentoSeleccionado] || []).map(mun => (
+                              <SelectItem key={mun.codigo} value={mun.codigo}>
+                                {mun.nombre} ({mun.codigo})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      {/* Read-only field showing selected municipio name and code */}
+                      {municipioObj && (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          <strong>Municipio seleccionado:</strong> {municipioObj.nombre} <br />
+                          <strong>Código DANE:</strong> {municipioObj.codigo}
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
